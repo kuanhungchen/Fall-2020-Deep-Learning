@@ -1,5 +1,6 @@
+import os
+import json
 import numpy as np
-# np.seterr(invalid="raise")
 
 
 def ReLU(x):
@@ -18,7 +19,7 @@ def Softmax(x):
         y.shape(B, 10)
     """
     exps = np.exp(x - x.max())
-    y = exps / (1e-1 + sum(exps))
+    y = exps / (1e-8 + np.sum(exps, axis=0))
     return y
 
 def one_hot_encoding(labels):
@@ -36,20 +37,11 @@ def one_hot_encoding(labels):
 
 
 class Model:
-    """
-    X: (1, 784)
-    W1: (784, h1), b1 : (1, h1)
-    Z1: (1, h1), A1: (1, h1)
-    W2: (h1, h2), b2: (1, h2)
-    Z2: (1, h2), A2: (1, h2)
-    W3: (h2, 10), b3: (1, 10)
-    Z3: (1, 10), A3: (1, 10)
-    """
-    def __init__(self, h1=256, h2=32):
+    def __init__(self, h1=128, h2=64):
         self.weights = {
-                'W1': np.random.randn(28 * 28, h1) * 0.1, "b1": np.random.randn(1, h1) * 0.1,
-                'W2': np.random.randn(h1, h2) * 0.1, "b2": np.random.randn(1, h2) * 0.1,
-                'W3': np.random.randn(h2, 10) * 0.1, "b3": np.random.randn(1, 10) * 0.1
+                'W1': np.random.randn(28 * 28, h1) * np.sqrt(1. / (28 * 28)), "b1": np.random.randn(1, h1) * np.sqrt(1. / (28 * 28)),
+                'W2': np.random.randn(h1, h2) * np.sqrt(1. / h1), "b2": np.random.randn(1, h2) * np.sqrt(1. / h1),
+                'W3': np.random.randn(h2, 10) * np.sqrt(1. / h2), "b3": np.random.randn(1, 10) * np.sqrt(1. / h2)
                 }
         self.cache = {
                 "Z1": np.zeros((1, h1), dtype=float),
@@ -67,7 +59,8 @@ class Model:
                 "dW3": np.zeros((h2, 10), dtype=float),
                 "db3": np.zeros((1, 10), dtype=float)
                 }
-        self.lr = 0.001
+        self.lr = 0.0005
+        self.beta = 0.9
     
     def forward(self, x):
         """
@@ -110,7 +103,7 @@ class Model:
             self.cache["A3"] = np.concatenate((self.cache["A3"], A3), axis=0)
 
         return self.cache["A3"]
-    
+
     def backward(self, logits, labels):
         """
         Args:
@@ -123,57 +116,47 @@ class Model:
 
         labels = one_hot_encoding(labels)
         
-        for key in self.grads.keys():
-            self.grads[key] = 0
-
+        dW1 = db1 = dW2 = db2 = dW3 = db3 = 0.0
         for i in range(N):
             cur_logits = logits[i]
             cur_labels = labels[i]
             
-            dZ3 = cur_labels - cur_logits
-            dW3 = np.dot(self.cache["A2"][i].reshape(-1, 1), dZ3.reshape(1, -1))
-            db3 = dZ3.reshape(1, -1)
-    
-            dA2 = np.dot(self.weights["W3"], dZ3)
-            dZ2 = ReLU_back(dA2, self.cache["Z2"][i])
-            dW2 = np.dot(self.cache["A1"][i].reshape(-1, 1), dZ2.reshape(1, -1))
-            # print("dW2 ==>", dW2.shape)
-            db2 = dZ2.reshape(1, -1)
-            # print("db2 ==>", db2.shape)
-            
-            dA1 = np.dot(self.weights["W2"], dZ2)
-            dZ1 = ReLU_back(dA1, self.cache["Z1"][i])
-            dW1 = np.dot(self.cache["X"][i].reshape(-1, 1), dZ1.reshape(1, -1))
-            # print("dW1 ==>", dW1.shape)
-            db1 = dZ1.reshape(1, -1)
-            # print("db1 ==>", db1.shape)
-            
-            self.grads["dW1"] += dW1
-            self.grads["db1"] += db1
-            self.grads["dW2"] += dW2
-            self.grads["db2"] += db2
-            self.grads["dW3"] += dW3
-            self.grads["db3"] += db3
+            cur_dZ3 = cur_logits - cur_labels
+            cur_dW3 = (1. / N) * np.dot(self.cache["A2"][i].reshape(-1, 1), cur_dZ3.reshape(1, -1))
+            cur_db3 = (1. / N) * cur_dZ3.reshape(1, -1)
 
-            # self.grads["dW1"] = np.add(self.grads["dW1"], dW1)
-            # self.grads["db1"] = np.add(self.grads["db1"], db1)
-            # self.grads["dW2"] = np.add(self.grads["dW2"], dW2)
-            # self.grads["db2"] = np.add(self.grads["db2"], db2)
+            cur_dA2 = np.dot(self.weights["W3"], cur_dZ3)
+            cur_dZ2 = ReLU_back(cur_dA2, self.cache["Z2"][i])
+            cur_dW2 = np.dot(self.cache["A1"][i].reshape(-1, 1), cur_dZ2.reshape(1, -1))
+            cur_db2 = cur_dZ2.reshape(1, -1)
+            
+            cur_dA1 = np.dot(self.weights["W2"], cur_dZ2)
+            cur_dZ1 = ReLU_back(cur_dA1, self.cache["Z1"][i])
+            cur_dW1 = (1. / N) * np.dot(self.cache["X"][i].reshape(-1, 1), cur_dZ1.reshape(1, -1))
+            cur_db1 = (1. / N) * cur_dZ1.reshape(1, -1)
+            
+            dW1 += cur_dW1
+            db1 += cur_db1
+            dW2 += cur_dW2
+            db2 += cur_db2
+            dW3 += cur_dW3
+            db3 += cur_db3
+        
+        self.grads["dW1"] = (1. - self.beta) * dW1 + self.beta * self.grads["dW1"]
+        self.grads["db1"] = (1. - self.beta) * db1 + self.beta * self.grads["db1"]
+        self.grads["dW2"] = (1. - self.beta) * dW2 + self.beta * self.grads["dW2"]
+        self.grads["db2"] = (1. - self.beta) * db2 + self.beta * self.grads["db2"]
+        self.grads["dW3"] = (1. - self.beta) * dW3 + self.beta * self.grads["dW3"]
+        self.grads["db3"] = (1. - self.beta) * db3 + self.beta * self.grads["db3"]
 
-        self.grads["dW1"] /= N
-        self.grads["db1"] /= N
-        self.grads["dW2"] /= N
-        self.grads["db2"] /= N
-        self.grads["dW3"] /= N
-        self.grads["db3"] /= N
 
     def step(self):
-        self.weights["W1"] += self.lr * self.grads["dW1"]
-        self.weights["b1"] += self.lr * self.grads["db1"]
-        self.weights["W2"] += self.lr * self.grads["dW2"]
-        self.weights["b2"] += self.lr * self.grads["db2"]
-        self.weights["W3"] += self.lr * self.grads["dW3"]
-        self.weights["b3"] += self.lr * self.grads["db3"]
+        self.weights["W1"] -= self.lr * self.grads["dW1"]
+        self.weights["b1"] -= self.lr * self.grads["db1"]
+        self.weights["W2"] -= self.lr * self.grads["dW2"]
+        self.weights["b2"] -= self.lr * self.grads["db2"]
+        self.weights["W3"] -= self.lr * self.grads["dW3"]
+        self.weights["b3"] -= self.lr * self.grads["db3"]
     
     def predict(self, x):
         """
@@ -216,20 +199,38 @@ class Model:
         """
         # TODO
         n = labels.shape[1]
-
         
-        loss = - 1 / n * (np.dot(labels, np.log(logits).T) + np.dot(1 - labels, np.log(1 - logits).T))
-        # loss = np.squeeze(loss)
+        log_sum = np.sum(np.multiply(labels, np.log(logits)))
+        ce_loss = - (1. / n) * log_sum
+
+        return ce_loss
         
-        self.loss = sum(loss[0][:])
-        return self.loss
+        # loss = - 1 / n * (np.dot(labels, np.log(logits).T) + np.dot(1 - labels, np.log(1 - logits).T))
+        # # loss = np.squeeze(loss)
+        
+        # self.loss = sum(loss[0][:])
+        # return self.loss
 
-    def save(self, path_to_checkpoints, step):
-        # TODO
-        raise NotImplementedError
+    def save(self, path_to_checkpoints, epoch_number):
+        """
+        Args:
+            path_to_checkpoints: path to save checkpoints
+            epoch_number: epoch number of current model weights
+        Return:
+            None
+        """
+        filename = os.path.join(path_to_checkpoints, "model_" + str(epoch_number))
+        np.save(filename, self.weights)
 
-    def load(self, path_to_checkpoints):
-        # TODO
-        raise NotImplementedError
+    def load(self, path_to_checkpoint):
+        """
+        Args:
+            path_to_checkpoint: path to trained model weights
+        Return:
+            None
+        """
+        checkpoint = np.load(path_to_checkpoint)
+        for key in self.weights.keys():
+            self.weights[key] = checkpoint[()][key]
 
 

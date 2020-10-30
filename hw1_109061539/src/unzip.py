@@ -42,9 +42,9 @@ def unzip_labels(src_filename, dst_filename):
         fp.close()
 
 if __name__ == "__main__":
-    src_path = "MNIST/zip_files/test-labels.gz"
-    dst_path = "MNIST/test/labels/"
-    unzip_labels(src_path, dst_path)
+    src_path = "MNIST/zip_files/train-images.gz"
+    dst_path = "MNIST/train/images/"
+    unzip_images(src_path, dst_path)
 
 
 # train_images_filename = "data/train/images.gz"
