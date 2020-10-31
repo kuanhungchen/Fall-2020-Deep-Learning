@@ -32,8 +32,8 @@ def Softmax(x):
     Return:
         y.shape = (batch size, 10)
     """
-    exps = np.exp(x - x.max())
-    y = exps / (1e-8 + np.sum(exps, axis=0))
+    exps = np.exp(x)
+    y = exps / np.sum(exps)
     return y
 
 def one_hot_encoding(labels):
@@ -46,7 +46,7 @@ def one_hot_encoding(labels):
     N = labels.shape[0]
     output = np.zeros((N, 10), dtype=np.int32)
     for i in range(N):
-        output[i][labels[i]] = 1
+        output[i][int(labels[i])] = 1
     return output
 
 
@@ -207,6 +207,15 @@ class Model:
         self.weights["W3"] -= self.lr * self.grads["dW3"]
         self.weights["b3"] -= self.lr * self.grads["db3"]
     
+    def lr_decay(self):
+        """decay model learning rate
+        Args:
+            None
+        Return:
+            None
+        """
+        model.lr /= 2
+        
     def predict(self, x):
         """predict a category given input data
         Args:
@@ -227,33 +236,26 @@ class Model:
         """compute cross entropy (CE) loss
         Args:
             logits.shape = (batch size, 10)
-            labels.shape = (batch size, 10)
+            labels.shape = (batch size, 1)
         Return:
             loss.shape = (1)
         """
-        # TODO
-        n = labels.shape[1]
-        
+        N = labels.shape[0]
+        labels = one_hot_encoding(labels)
         log_sum = np.sum(np.multiply(labels, np.log(logits)))
-        ce_loss = - (1. / n) * log_sum
+        CE_loss = - (1. / N) * log_sum
 
-        return ce_loss
-        
-        # loss = - 1 / n * (np.dot(labels, np.log(logits).T) + np.dot(1 - labels, np.log(1 - logits).T))
-        # # loss = np.squeeze(loss)
-        
-        # self.loss = sum(loss[0][:])
-        # return self.loss
+        return CE_loss
 
-    def save(self, path_to_checkpoints, epoch_number):
+    def save(self, path_to_checkpoints, tag):
         """function to save model weights
         Args:
             path_to_checkpoints: directory to save model weights
-            epoch_number: epoch number of current model weights
+            tag: tag about current model weights
         Return:
             None
         """
-        filename = os.path.join(path_to_checkpoints, "model_" + str(epoch_number))
+        filename = os.path.join(path_to_checkpoints, "model_" + str(tag))
         np.save(filename, self.weights)
 
     def load(self, path_to_checkpoint):

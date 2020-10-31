@@ -2,27 +2,44 @@ import os
 import numpy as np
 import datetime
 
-from src.dataset import MNIST_dataset as Dataset
 from src.model import Model
+from src.config import TrainConfig as Config
+from src.dataset import MNIST_dataset as Dataset
 
 def train(path_to_train_data, path_to_val_data, path_to_checkpoints="checkpoints"):
-    os.makedirs(path_to_checkpoints, exist_ok=True)
+    """Train a model from scratch
+    Args:
+        path_to_train_data: directory to train images and labels
+        path_to_val_data: directory to val images and labels
+        path_to_checkpoints: directory to save model weights
+    Return:
+        None
+    """
+    
+    # create folder for this experiment
+    time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    os.makedirs(os.path.join(path_to_checkpoints, time), exist_ok=True)
     
     print("Time: {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    
     train_dataset = Dataset(path_to_train_data, mode="train")
     print("load training sample: {}".format(len(train_dataset)))
     val_dataset = Dataset(path_to_val_data, mode="val")
     print("load val sample: {}".format(len(val_dataset)))
-
+    
     model = Model()
+    
+    batch_size = Config.BatchSize
+    epoch_num = Config.EpochNumber
+    epoch_interval_to_save = Config.EpochIntervalToSave
+    epoch_interval_to_decay = Config.EpochIntervalToDecay
 
-    batch_size = 10
-    epoch_num = 70
-    should_stop = False
     best_acc = -1
     for epoch_idx in range(1, epoch_num + 1):
+        # shuffle the whole training set 
+        shuffle = np.random.permutation(len(train_dataset))
         
-        shuffle = np.random.permutation(len(train_dataset)) # shuffle the training set
+        start_time = datetime.datetime.now()
         for batch_index in range(len(train_dataset) // batch_size):
             # construct a batch of data
             data_idx = shuffle[batch_index * batch_size]
@@ -31,47 +48,71 @@ def train(path_to_train_data, path_to_val_data, path_to_checkpoints="checkpoints
             for data_idx in [shuffle[idx] for idx in range(batch_index * batch_size + 1, (batch_index + 1) * batch_size)]:
                 res = train_dataset[data_idx]
                 image, label = res["image"], res["label"]
-
                 images = np.concatenate((images, image), axis=0)
                 labels = np.concatenate((labels, label), axis=0)
 
             # forward
             logits = model.forward(images)
 
-            # backward and update
+            # backward
             model.backward(logits, labels)
+
+            # update model weights
             model.step()
         
-        # evaluate
-        val_hit = 0
-        for data_idx in np.arange(len(val_dataset)):
-            res = val_dataset[data_idx]
-            image, label = res["image"], res["label"]
-
-            pred = model.predict(image)
-            val_hit += int(pred) == int(label[0])
-        val_acc = val_hit / len(val_dataset)
-
+        spend_time = datetime.datetime.now() - start_time
+        
+        # compute loss and accuracy on training set and validation set
         train_hit = 0
+        images = np.zeros((1, 28 * 28), dtype=np.float32)
+        labels = np.zeros((1, 1), dtype=np.int32)
         for data_idx in np.arange(len(train_dataset)):
             res = train_dataset[data_idx]
             image, label = res["image"], res["label"]
 
             pred = model.predict(image)
             train_hit += int(pred) == int(label[0])
+            
+            images = np.concatenate((images, image), axis=0)
+            labels = np.concatenate((labels, label), axis=0)
+        logits = model.forward(images[1:])
+        train_loss = model.CEloss(logits, labels[1:])
         train_acc = train_hit / len(train_dataset)
 
-        print("Epoch {} | Train acc. {:.4f} | Val acc. {:.4f} | Lr. {:.4f}".format(epoch_idx, train_acc, val_acc, model.lr))
+        val_hit = 0
+        images = np.zeros((1, 28 * 28), dtype=np.float32)
+        labels = np.zeros((1, 1), dtype=np.int32)
+        for data_idx in np.arange(len(val_dataset)):
+            res = val_dataset[data_idx]
+            image, label = res["image"], res["label"]
+            
+            pred = model.predict(image)
+            val_hit += int(pred) == int(label[0])
 
-        if epoch_idx % 30 == 0:
-            model.lr /= 2
+            images = np.concatenate((images, image), axis=0)
+            labels = np.concatenate((labels, label), axis=0)
+        logits = model.forward(images[1:])
+        val_loss = model.CEloss(logits, labels[1:])
+        val_acc = val_hit / len(val_dataset)
+
+        print("[{}] Epoch {:2d} | Train acc. {:.4f} | Train loss {:.4f} | Val acc. {:.4f} | Val loss {:.4f} | Time {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), epoch_idx, train_acc, train_loss, val_acc, val_loss, spend_time))
+        
+        if epoch_idx % epoch_interval_to_save == 0:
+            # save epoch model weights
+            model.save(path_to_checkpoints=path_to_checkpoints, tag=str(epoch_idx))
+
+        if epoch_idx % epoch_interval_to_decay == 0:
+            # learning rate decay
+            model.lr_decay()
         
         if val_acc > best_acc:
+            # save best model weights
             best_acc = val_acc
-            model.save(path_to_checkpoints, epoch_idx)
+            model.save(path_to_checkpoints=path_to_checkpoints, tag="best")
+
 
 
 if __name__ == "__main__":
-    train("MNIST/train", "MNIST/train")
+    train(path_to_train_data="MNIST/train", path_to_val_data="MNIST/train", path_to_checkpoints="checkpoints")
 
 

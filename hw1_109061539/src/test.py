@@ -29,4 +29,4 @@ def test(path_to_test_data, path_to_checkpoint):
     print("Hit: {} | Miss: {} | Acc.: {}".format(test_hit, len(test_dataset) - test_hit, test_hit / len(test_dataset)))
 
 if __name__ == "__main__":
-    test("MNIST/test", "checkpoints/model_70.npy")
+    test("MNIST/test", "checkpoints/20201030_235851/model_70.npy")
