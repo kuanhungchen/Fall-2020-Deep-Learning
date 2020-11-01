@@ -20,13 +20,16 @@ def train(path_to_train_data, path_to_val_data, path_to_checkpoints="checkpoints
     time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     os.makedirs(os.path.join(path_to_checkpoints, time), exist_ok=True)
     
-    print("Time: {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
-    
     train_dataset = Dataset(path_to_train_data, mode="train")
-    print("load training sample: {}".format(len(train_dataset)))
     val_dataset = Dataset(path_to_val_data, mode="val")
-    print("load val sample: {}".format(len(val_dataset)))
     
+    with open(os.path.join(path_to_checkpoints, time, "log.txt"), "a") as fp:
+        fp.write("Time: {}\n".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    
+        fp.write("load training sample: {}\n".format(len(train_dataset)))
+        fp.write("load val sample: {}\n".format(len(val_dataset)))
+    fp.close()
+
     model = Model()
     
     batch_size = Config.BatchSize
@@ -50,7 +53,6 @@ def train(path_to_train_data, path_to_val_data, path_to_checkpoints="checkpoints
                 image, label = res["image"], res["label"]
                 images = np.concatenate((images, image), axis=0)
                 labels = np.concatenate((labels, label), axis=0)
-
             # forward
             logits = model.forward(images)
 
@@ -94,9 +96,10 @@ def train(path_to_train_data, path_to_val_data, path_to_checkpoints="checkpoints
         logits = model.forward(images[1:])
         val_loss = model.CEloss(logits, labels[1:])
         val_acc = val_hit / len(val_dataset)
-
-        print("[{}] Epoch {:2d} | Train acc. {:.4f} | Train loss {:.4f} | Val acc. {:.4f} | Val loss {:.4f} | Time {}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), epoch_idx, train_acc, train_loss, val_acc, val_loss, spend_time))
         
+        with open(os.path.join(path_to_checkpoints, time, "log.txt"), "a") as fp:
+            fp.write("[{}] Epoch {:2d} | Train acc. {:.4f} | Train loss {:.4f} | Val acc. {:.4f} | Val loss {:.4f} | Time {}\n".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), epoch_idx, train_acc, train_loss, val_acc, val_loss, spend_time))
+        fp.close 
         if epoch_idx % epoch_interval_to_save == 0:
             # save epoch model weights
             model.save(path_to_checkpoints=path_to_checkpoints, tag=str(epoch_idx))
@@ -108,7 +111,7 @@ def train(path_to_train_data, path_to_val_data, path_to_checkpoints="checkpoints
         if val_acc > best_acc:
             # save best model weights
             best_acc = val_acc
-            model.save(path_to_checkpoints=path_to_checkpoints, tag="best")
+            model.save(path_to_checkpoints=os.path.join(path_to_checkpoints, time), tag="best")
 
 
 

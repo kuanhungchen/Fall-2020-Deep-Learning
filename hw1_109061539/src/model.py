@@ -33,7 +33,7 @@ def Softmax(x):
         y.shape = (batch size, 10)
     """
     exps = np.exp(x)
-    y = exps / np.sum(exps)
+    y = exps / (1e-8 + np.sum(exps))
     return y
 
 def one_hot_encoding(labels):
@@ -214,7 +214,7 @@ class Model:
         Return:
             None
         """
-        model.lr /= 2
+        self.lr /= 2
         
     def predict(self, x):
         """predict a category given input data
