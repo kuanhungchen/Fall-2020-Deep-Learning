@@ -32,22 +32,22 @@ class MNIST_dataset:
         self.labels = []
         
         if self.mode == "train":
-            for filename in sorted(glob.glob(os.path.join(self.path_to_images, "*.png")))[:10000]:
+            for filename in sorted(glob.glob(os.path.join(self.path_to_images, "*.png")))[:42000]:
                 img = cv2.imread(filename, 0)
                 self.images.append(img)
 
-            for filename in sorted(glob.glob(os.path.join(self.path_to_labels, "*.txt")))[:10000]:
+            for filename in sorted(glob.glob(os.path.join(self.path_to_labels, "*.txt")))[:42000]:
                 with open(filename, "r") as fp:
                     line = fp.readline()
                     self.labels.append(int(line[1]))
                 fp.close()
 
         elif self.mode == "val":
-            for filename in sorted(glob.glob(os.path.join(self.path_to_images, "*.png")))[10000:15000]:
+            for filename in sorted(glob.glob(os.path.join(self.path_to_images, "*.png")))[42000:]:
                 img = cv2.imread(filename, 0)
                 self.images.append(img)
             
-            for filename in sorted(glob.glob(os.path.join(self.path_to_labels, "*.txt")))[10000:15000]:
+            for filename in sorted(glob.glob(os.path.join(self.path_to_labels, "*.txt")))[42000:]:
                 with open(filename, "r") as fp:
                     line = fp.readline()
                     self.labels.append(int(line[1]))

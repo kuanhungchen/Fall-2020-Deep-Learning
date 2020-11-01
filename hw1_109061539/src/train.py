@@ -97,25 +97,24 @@ def train(path_to_train_data, path_to_val_data, path_to_checkpoints="checkpoints
         val_loss = model.CEloss(logits, labels[1:])
         val_acc = val_hit / len(val_dataset)
         
+        # write to log file
         with open(os.path.join(path_to_checkpoints, time, "log.txt"), "a") as fp:
             fp.write("[{}] Epoch {:2d} | Train acc. {:.4f} | Train loss {:.4f} | Val acc. {:.4f} | Val loss {:.4f} | Time {}\n".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), epoch_idx, train_acc, train_loss, val_acc, val_loss, spend_time))
-        fp.close 
+        fp.close()
+
         if epoch_idx % epoch_interval_to_save == 0:
             # save epoch model weights
-            model.save(path_to_checkpoints=path_to_checkpoints, tag=str(epoch_idx))
+            model.save(path_to_checkpoints=os.path.join(path_to_checkpoints, time), tag=str(epoch_idx))
 
-        if epoch_idx % epoch_interval_to_decay == 0:
-            # learning rate decay
-            model.lr_decay()
-        
         if val_acc > best_acc:
             # save best model weights
             best_acc = val_acc
             model.save(path_to_checkpoints=os.path.join(path_to_checkpoints, time), tag="best")
 
+        if epoch_idx % epoch_interval_to_decay == 0:
+            # learning rate decay
+            model.lr_decay()
 
 
 if __name__ == "__main__":
     train(path_to_train_data="MNIST/train", path_to_val_data="MNIST/train", path_to_checkpoints="checkpoints")
-
-
