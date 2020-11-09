@@ -4,3 +4,5 @@ __pycache__
 *.png
 *.txt
 *.pyc
+*.zip
+*.pdf
