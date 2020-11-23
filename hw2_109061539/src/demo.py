@@ -45,6 +45,7 @@ def display_image_with_gen_data(data, gen_data, label=None):
     bdry, dfct, nrml = data[0, :, :], data[1, :, :], data[2, :, :]
 
     plt.figure()
+    plt.subplots_adjust(left=0.2, right=0.8, top=0.93, bottom=0.05, wspace=0, hspace=0.2)
     plt.suptitle(title, fontsize=14)
     plt.subplot(1 + N, 3, 1)
     plt.title('boundary')
@@ -106,4 +107,4 @@ def demo(path_to_data, path_to_generated_data, index_to_demo=None):
 
 
 if __name__ == "__main__":
-    demo(path_to_data='./wafer', path_to_generated_data='./output', index_to_demo=1000)
+    demo(path_to_data='./wafer', path_to_generated_data='./output', index_to_demo=9)

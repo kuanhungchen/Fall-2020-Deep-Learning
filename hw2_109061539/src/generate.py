@@ -8,23 +8,6 @@ from src.model import AutoEncoder as AE
 from src.dataset import WAFER_dataset as Dataset
 
 
-def gaussian_noise(size, mean, variance):
-    """Given size, mean and variange, return a matrix of Gaussian distribution
-    Args:
-        size (int): the width and height of gaussian noise matrix
-        mean: mean of Gaussian distribution
-        variance: variance of Gaussian distribution
-    Return:
-        noise: output gaussian noise matrix, shape = (size, size)
-    """
-
-    x, y = np.meshgrid(np.linspace(-1, 1, size), np.linspace(-1, 1, size))
-    d = np.sqrt(x * x + y * y)
-    noise = np.exp(-((d - mean) ** 2 / (2 * variance)))
-
-    return noise
-
-
 def generate(path_to_data, path_to_generated_data, path_to_checkpoint):
     """Given model weights, generate new samples from the original dataset
     Args:
@@ -48,9 +31,6 @@ def generate(path_to_data, path_to_generated_data, path_to_checkpoint):
     generated_data = np.zeros((1, 26, 26, 3))
     generated_label = np.zeros((1, 1))
 
-    # create gaussian noise matrix
-    noise = gaussian_noise(12, 0, 1)
-    
     # save generated samples or not
     save_flag = True
     for batch_idx, (data, label) in enumerate(dataloader):
@@ -58,16 +38,12 @@ def generate(path_to_data, path_to_generated_data, path_to_checkpoint):
         
         # encode the data to latent
         latent = model.eval().encode(data)
-        latent = latent.float()
         
         for _ in range(5):
             # add Gaussian noise to the latent
-            noised_latent = latent.detach().clone()
-            for c in range(latent.shape[1]):
-                for i in range(latent.shape[2]):
-                    for j in range(latent.shape[3]):
-                        noised_latent[0][c][i][j] += noise[i][j]
-            
+            noise = torch.randn_like(latent)
+            noised_latent = latent.detach().clone() + noise
+
             # decode the noised latent back to reconstructed data
             reconstructed_data = model.eval().decode(noised_latent)
             reconstructed_data = reconstructed_data.detach().numpy()
@@ -83,7 +59,9 @@ def generate(path_to_data, path_to_generated_data, path_to_checkpoint):
             # append to array
             generated_data = np.concatenate((generated_data, reconstructed_data), axis=0)
             generated_label = np.concatenate((generated_label, label), axis=0)
-    
+        
+        if batch_idx == 10:
+            break
     generated_data = generated_data[1:]
     generated_label = generated_label[1:]
     
@@ -94,4 +72,4 @@ def generate(path_to_data, path_to_generated_data, path_to_checkpoint):
  
 
 if __name__ == '__main__':
-    generate(path_to_data='./wafer', path_to_generated_data='./output', path_to_checkpoint='./checkpoints/update2/model_last.pth')
+    generate(path_to_data='./wafer', path_to_generated_data='./output/test', path_to_checkpoint='./checkpoints/model_last.pth')

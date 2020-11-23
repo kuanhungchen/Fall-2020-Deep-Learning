@@ -6,7 +6,7 @@ from dataset import WAFER_dataset as Dataset
 from model import AutoEncoder as AE
 
 
-def train(path_to_data, path_to_checkpoints="./checkpoints"):
+def train(path_to_data, path_to_checkpoints):
     """Train a model from scratch
     Args:
         path_to_data: directory to data
@@ -34,13 +34,9 @@ def train(path_to_data, path_to_checkpoints="./checkpoints"):
             
             # encode the data to latent
             latent = model.train().encode(data)
-            # latent = latent.float()
-            # latent = latent.cuda()
 
             # decode the latent back to reconstructed data
             reconstructed_data = model.train().decode(latent)
-            # reconstructed_data = reconstructed_data.float()
-            # reconstructed_data = reconstructed_data.cuda()
 
             # compute loss
             loss = model.loss(data, reconstructed_data)
@@ -50,6 +46,7 @@ def train(path_to_data, path_to_checkpoints="./checkpoints"):
 
             # backward
             loss.backward()
+
             # update model weights
             optimizer.step()
 
@@ -64,4 +61,4 @@ def train(path_to_data, path_to_checkpoints="./checkpoints"):
 
 
 if __name__ == "__main__":
-    train(path_to_data="wafer", path_to_checkpoints="./checkpoints/update2")
+    train(path_to_data="./wafer", path_to_checkpoints="./checkpoints")
