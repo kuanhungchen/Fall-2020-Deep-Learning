@@ -7,134 +7,54 @@ from torch import nn
 
 class AutoEncoder(nn.Module):
     def __init__(self):
+        """Autoencoder network for generating wafer data
+        """
         super(AutoEncoder, self).__init__()
         self.encoder = nn.Sequential(
-            nn.Conv2d(3, 16, 3),
+            nn.Conv2d(3, 16, kernel_size=7, padding=0),
             nn.ReLU(),
-            nn.Dropout(0.25),
-            nn.MaxPool2d(2, 2),
-            nn.Conv2d(16, 8, 3),
+            nn.Conv2d(16, 32, kernel_size=5, padding=0),
             nn.ReLU(),
-            nn.Dropout(0.25),
-            nn.MaxPool2d(2, 2)
+            nn.Conv2d(32, 16, kernel_size=3, padding=0),
+            nn.ReLU(),
+            nn.Conv2d(16, 8, kernel_size=3, padding=0),
+            nn.ReLU()
         )
         self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(8, 16, 4, stride=2),
+            nn.ConvTranspose2d(8, 16, kernel_size=3, padding=0),
             nn.ReLU(),
-            nn.ConvTranspose2d(16, 3, 4, stride=2),
+            nn.ConvTranspose2d(16, 32, kernel_size=3, padding=0),
+            nn.ReLU(),
+            nn.ConvTranspose2d(32, 16, kernel_size=5, padding=0),
+            nn.ReLU(),
+            nn.ConvTranspose2d(16, 3, kernel_size=7, padding=0),
             nn.ReLU()
         )
 
-        # self.bdry_encoder = nn.Sequential(
-            # nn.Conv2d(1, 16, 3),
-            # nn.ReLU(),
-            # nn.Dropout(0.25),
-            # nn.MaxPool2d(2, 2),
-            # nn.Conv2d(16, 8, 3),
-            # nn.ReLU(),
-            # nn.Dropout(0.25),
-            # nn.MaxPool2d(2, 2)
-        # )
-        # self.nrml_encoder = nn.Sequential(
-            # nn.Conv2d(1, 16, 3),
-            # nn.ReLU(),
-            # nn.Dropout(0.25),
-            # nn.MaxPool2d(2, 2),
-            # nn.Conv2d(16, 8, 3),
-            # nn.ReLU(),
-            # nn.Dropout(0.25),
-            # nn.MaxPool2d(2, 2)
-        # )
-        # self.dfct_encoder = nn.Sequential(
-            # nn.Conv2d(1, 16, 3),
-            # nn.ReLU(),
-            # nn.Dropout(0.25),
-            # nn.MaxPool2d(2, 2),
-            # nn.Conv2d(16, 8, 3),
-            # nn.ReLU(),
-            # nn.Dropout(0.25),
-            # nn.MaxPool2d(2, 2)
-        # )
-
-        # self.bdry_decoder = nn.Sequential(
-            # # nn.UpsamplingNearest2d(scale_factor=2),
-            # # nn.MaxUnpool2d(2, stride=2),
-            # nn.ConvTranspose2d(8, 16, 4, stride=2),
-            # nn.ReLU(),
-            # # nn.UpsamplingNearest2d(scale_factor=2),
-            # # nn.MaxUnpool2d(2, stride=2),
-            # nn.ConvTranspose2d(16, 1, 4, stride=2),
-            # nn.ReLU()
-            # # nn.UpsamplingNearest2d(scale_factor=2),
-        # )
-        # self.nrml_decoder = nn.Sequential(
-            # # nn.UpsamplingNearest2d(scale_factor=2),
-            # # nn.MaxUnpool2d(2, stride=2),
-            # nn.ConvTranspose2d(8, 16, 4, stride=2),
-            # nn.ReLU(),
-            # # nn.UpsamplingNearest2d(scale_factor=2),
-            # # nn.MaxUnpool2d(2, stride=2),
-            # nn.ConvTranspose2d(16, 1, 4, stride=2),
-            # nn.ReLU()
-            # # nn.UpsamplingNearest2d(scale_factor=2),
-        # )
-        # self.dfct_decoder = nn.Sequential(
-            # # nn.UpsamplingNearest2d(scale_factor=2),
-            # # nn.MaxUnpool2d(2, stride=2),
-            # nn.ConvTranspose2d(8, 16, 4, stride=2),
-            # nn.ReLU(),
-            # # nn.UpsamplingNearest2d(scale_factor=2),
-            # # nn.MaxUnpool2d(2, stride=2),
-            # nn.ConvTranspose2d(16, 1, 4, stride=2),
-            # nn.ReLU()
-            # # nn.UpsamplingNearest2d(scale_factor=2),
-        # )
-    
     def encode(self, data):
         """
         Args:
-            data: input data, shape = (batch_size, 3 26, 26)
+            data: input data, shape = (batch_size, 3, 26, 26)
 
         Return:
-            latents: output encoded latent, shape = (batch_size, 8, 5, 5)
+            latents: output encoded latent, shape = (batch_size, 8, 12, 12)
         """
 
         latent = self.encoder(data)
 
-        # bdry = data[:, 0, :, :].view(-1, 1, 26, 26)
-        # nrml = data[:, 1, :, :].view(-1, 1, 26, 26)
-        # dfct = data[:, 2, :, :].view(-1, 1, 26, 26)
-        
-        # bdry_latent = self.bdry_encoder(bdry)
-        # nrml_latent = self.nrml_encoder(nrml)
-        # dfct_latent = self.dfct_encoder(dfct)
-        
-        # latent = torch.cat((bdry_latent, nrml_latent, dfct_latent), 1)
-
-        # print("latent.shape ==>", latent.shape)
         return latent
 
     def decode(self, latent):
         """
         Args:
-            latents: input latent, shape = (batch_size, 8, 5, 5)
+            latents: input latent, shape = (batch_size, 8, 12, 12)
 
         Return:
             data: output decoded data, shape = (batch_size, 3, 26, 26)
         """
+
         data = self.decoder(latent)
 
-        # bdry_latent = latent[:, 0:8, :, :].view(-1, 8, 5, 5)
-        # nrml_latent = latent[:, 8:16, :, :].view(-1, 8, 5, 5)
-        # dfct_latent = latent[:, 16:24, :, :].view(-1, 8, 5, 5)
-
-        # bdry = self.bdry_decoder(bdry_latent)
-        # nrml = self.nrml_decoder(nrml_latent)
-        # dfct = self.dfct_decoder(dfct_latent)
-
-        # data = torch.cat((bdry, nrml, dfct), 1)
-        
-        # print("data.shape ==>", data.shape)
         return data
 
     def loss(self, data, reconstructed_data):

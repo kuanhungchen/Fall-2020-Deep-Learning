@@ -1,3 +1,4 @@
+import datetime
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
@@ -24,7 +25,7 @@ def train(path_to_data, path_to_checkpoints="./checkpoints"):
     # create optimizer
     optimizer = optim.SGD(model.parameters(), lr=1e-3, weight_decay=1e-4)
     
-    epoch_num = 150000
+    epoch_num = 50000
     for epoch_idx in range(1, epoch_num + 1):
         total_loss = []
         for batch_idx, (data, _) in enumerate(dataloader):
@@ -53,13 +54,14 @@ def train(path_to_data, path_to_checkpoints="./checkpoints"):
             optimizer.step()
 
         # print training details
-        print("Epoch: {:2d} | Loss: {:.4f}".format(epoch_idx, sum(total_loss) / len(total_loss)))
+        print("[{}] Epoch: {:2d} | Loss: {:.4f}".format(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), epoch_idx, sum(total_loss) / len(total_loss)))
         
-        if epoch_idx % 30000 == 0:
+        if epoch_idx % 10000 == 0:
             # save current model weights
             model.save(path_to_checkpoints, tag=str(epoch_idx))
+
     model.save(path_to_checkpoints, tag='last')
 
 
 if __name__ == "__main__":
-    train(path_to_data="wafer", path_to_checkpoints="./checkpoints/tmp")
+    train(path_to_data="wafer", path_to_checkpoints="./checkpoints/update2")
