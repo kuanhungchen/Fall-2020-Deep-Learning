@@ -35,6 +35,7 @@ def generate(path_to_data, path_to_generated_data, path_to_checkpoint):
     save_flag = True
     for batch_idx, (data, label) in enumerate(dataloader):
         data = data.float()
+        data = data.cuda()
         
         # encode the data to latent
         latent = model.eval().encode(data)
@@ -60,8 +61,6 @@ def generate(path_to_data, path_to_generated_data, path_to_checkpoint):
             generated_data = np.concatenate((generated_data, reconstructed_data), axis=0)
             generated_label = np.concatenate((generated_label, label), axis=0)
         
-        if batch_idx == 10:
-            break
     generated_data = generated_data[1:]
     generated_label = generated_label[1:]
     
@@ -72,4 +71,4 @@ def generate(path_to_data, path_to_generated_data, path_to_checkpoint):
  
 
 if __name__ == '__main__':
-    generate(path_to_data='./wafer', path_to_generated_data='./output/test', path_to_checkpoint='./checkpoints/model_last.pth')
+    generate(path_to_data='./wafer', path_to_generated_data='./output', path_to_checkpoint='./checkpoints/model_last.pth')
