@@ -1,8 +1,13 @@
 import os
 import cv2
+import numpy as np
 
 
-class Fruit_dataset:
+class Dataset:
+    
+    IMG_HEIGHT = 32
+    IMG_WIDTH = 32
+    IMG_CHANNEL = 1
     text2label = {'Carambula': 0, 'Lychee': 1, 'Pear': 2}
     
     def __init__(self, path_to_data, mode):
@@ -41,14 +46,24 @@ class Fruit_dataset:
     
     def __getitem__(self, index):
         image = self.images[index]
+        image = np.array(image, dtype=float)
+        image = np.reshape(image, (self.IMG_HEIGHT, self.IMG_WIDTH, self.IMG_CHANNEL))
+        image /= 255.0
+
         label = self.labels[index]
+        label = np.array(label, dtype=int)
+        label = np.reshape(label, (1, -1))
 
         return image, label
 
 
 if __name__ == '__main__':
-    dataset = Fruit_dataset('./data', mode='train')
-    print('len of dataset:', len(dataset))
+    dataset = Dataset('./data', mode='train')
+    print('Length of dataset:', len(dataset))
     img, lbl = dataset[0]
-    print('img shape:', img.shape)
-    print('label:', lbl)
+    print('Image:')
+    print('  - shape:', img.shape)
+    print('  - type:', type(img))
+    print('Label:')
+    print('  - shape:', lbl.shape)
+    print('  - type:', type(lbl))

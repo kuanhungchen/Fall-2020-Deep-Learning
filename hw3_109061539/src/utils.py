@@ -1,13 +1,6 @@
 import numpy as np
 
 
-def softmax(xs):
-    exps = np.exp(xs)
-    probs = exps / np.sum(exps)
-
-    return probs
-
-
 def CEloss(probs, labels):
     """cross entropy function
     Args:

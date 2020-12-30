@@ -1,37 +1,51 @@
 import numpy as np
 
-from src.layers import Conv2D, ReLU
+from src.dataset import Dataset
+from src.layers import Softmax, ReLU, Conv2D, FullyConnected, Flatten
 
 
 class Model:
+
+    INPUT_CHANNEL = 1
+    NUM_CLASS = 3
+
     def __init__(self):
         self.layers = [
-            Conv2D(kernel_shape=(3, 3, 3, 4)),
+            Conv2D(kernel_shape=(5, 5, self.INPUT_CHANNEL, 4)),
             ReLU(),
-            Conv2D(kernel_shape=(3, 3, 4, 8)),
+            Conv2D(kernel_shape=(7, 7, 4, 8)),
             ReLU(),
-            Conv2D(kernel_shape=(3, 3, 8, 4))
+            Conv2D(kernel_shape=(5, 5, 8, 4)),
+            ReLU(),
+            Flatten(),
+            FullyConnected(input_shape=1296, output_shape=640),
+            ReLU(),
+            FullyConnected(input_shape=640, output_shape=256),
+            ReLU(),
+            FullyConnected(input_shape=256, output_shape=64),
+            ReLU(),
+            FullyConnected(input_shape=64, output_shape=self.NUM_CLASS),
+            Softmax()
         ]
-        
+
         self.lr = 3e-4
-    
+
     def forward(self, x):
-        print("init shape ==>", x.shape)
         for layer in self.layers:
+            print("[forward] {}".format(layer.name))
             x = layer.forward(x)
-            print("shape ==>", x.shape)
 
         return x
-    
+
     def backward(self, d):
         """back propagation in reversed order
         Args:
             d: The activation from last layer, which means the differnece
             between predicted output and ground truth.
-
         """
 
         for layer in reversed(self.layers):
+            print("[backward] {}".format(layer.name))
             d = layer.backward(upstream_grad=d)
     
     def update(self):
@@ -39,26 +53,18 @@ class Model:
         """
         for layer in self.layers:
             if layer.update_required is True:
+                print("[update] {}".format(layer.name))
                 layer.update(self.lr)
 
 
 if __name__ == '__main__':
+    dataset = Dataset('./data', mode='train')
     model = Model()
-    B = 1
-    iC = 3
-    test_image = np.zeros((B, 7, 7, iC))
-    for b in range(B):
-        for ic in range(iC):
-            test_image[b, :, :, ic] = np.array(([
-                [2, 3, 7, 4, 6, 2, 9],
-                [6, 6, 9, 8, 7, 4, 3],
-                [3, 4, 8, 3, 8, 9, 7],
-                [7, 8, 3, 6, 6, 3, 4],
-                [4, 2, 1, 8, 3, 4, 6],
-                [3, 2, 4, 1, 9, 8, 3],
-                [0, 1, 3, 9, 2, 1, 4]
-            ]))
 
-    logits = model.forward(test_image)
-    print("logits.shape:", logits.shape)
-    print("logits =", logits)
+    img, lbl = dataset[0]
+    img = np.reshape(img, (1, 32, 32, 1))
+
+    logits = model.forward(img)
+    print(logits)
+    init_grad = logits - [[1, 0, 0]]
+    model.backward(d=init_grad)
