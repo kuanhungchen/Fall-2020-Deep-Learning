@@ -28,28 +28,3 @@ def one_hot_encoding(labels, num_class=3):
         output[i][int(labels[i])] = 1
 
     return output
-
-
-def maxPool2D(input_feat, kernel_size=2, stride=2):
-    """2D max pooling operation
-    (ref: https://pytorch.org/docs/stable/generated/torch.nn.MaxPool2d.html)
-
-    Args:
-        input_feat:
-            The input feature map.
-
-        kernel_size:
-            The kernel size of max-pooling.
-            Currently only supports for single integer.
-
-        stride:
-            The stride of max-pooling.
-            Current only supports for single integer.
-    
-    Return:
-        output_feat:
-            The output feature map.
-    """
-    
-    # TODO
-    raise NotImplementedError

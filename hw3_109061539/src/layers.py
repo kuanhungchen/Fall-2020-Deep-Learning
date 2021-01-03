@@ -6,7 +6,7 @@ class Softmax:
     """
     def __init__(self):
 
-        self.name = "Softmax"
+        self.name = 'Softmax'
         self.update_required = False
 
         self.probs = None
@@ -14,7 +14,7 @@ class Softmax:
     def forward(self, input_feat):
 
         exps = np.exp(input_feat)
-        self.probs = exps / np.sum(exps)
+        self.probs = exps / np.sum(exps, axis=1, keepdims=True)
 
         return self.probs
     
@@ -27,22 +27,18 @@ class ReLU:
     """
     def __init__(self):
 
-        self.name = "ReLU"
+        self.name = 'ReLU'
         self.update_required = False
 
         self.activated_feat = None
 
     def forward(self, input_feat):
-        self.activated_feat = np.maximum(input_feat, 0)
+        self.activated_feat = np.maximum(0, input_feat)
         return self.activated_feat
 
     def backward(self, upstream_grad):
-        # print("self.activated_feat.shape:", self.activated_feat.shape)
-        # print("upstream_grad.shape:", upstream_grad.shape)
         downstream_grad = np.array(upstream_grad, copy=True)
         downstream_grad[self.activated_feat <= 0] = 0
-        # local_grad = self.activated_feat > 0
-        # downstream_grad = upstream_grad * local_grad
         return downstream_grad
 
 
@@ -65,7 +61,7 @@ class Conv2D:
                 The padding of convolution operation, default is 0.
         """
 
-        self.name = "Conv2D"
+        self.name = 'Conv2D'
         self.update_required = True
 
         # variable initialization
@@ -74,9 +70,9 @@ class Conv2D:
         self.padding = padding
 
         self.input_feat = None
-        self.grads = {'dW': None, 'db': None}
         self.weights = np.random.randn(*self.kernel_shape) * 0.1
         self.bias = np.random.randn(self.kernel_shape[3]) * 0.1
+        self.grads = {'dW': None, 'db': None}
 
 
     def forward(self, input_feat):
@@ -104,20 +100,18 @@ class Conv2D:
         output_feat = np.zeros((B, oH, oW, oC))
 
         input_feat = self.get_padded_feat(input_feat)
+        h = 0
+        for i in range(oH):
+            w = 0
+            for j in range(oW):
+                output_feat[:, i, j, :] = np.sum(
+                    input_feat[:, h:h + kH, w:w + kW, :, np.newaxis] *
+                    self.weights[np.newaxis, :, :, :],
+                    axis=(1, 2, 3)
+                )
+                w += self.stride
+            h += self.stride
 
-        for b in range(B):
-            h = 0
-            for i in range(oH):
-                w = 0
-                for j in range(oW):
-                    for oc in range(oC):
-                        partial_weights = np.reshape(self.weights[:, :, :, oc], (1, kH, kW, -1))
-                        partial_input_feat = input_feat[b, h:h + kH, w:w + kW, :]
-
-                        output_feat[b, i, j, oc] = np.sum(partial_weights * partial_input_feat)
-                    w += self.stride
-                h += self.stride
-        
         return output_feat + self.bias
 
     def backward(self, upstream_grad):
@@ -135,73 +129,35 @@ class Conv2D:
         B, iH, iW, iC = self.input_feat.shape
         _, oH, oW, oC = upstream_grad.shape
         kH, kW, _, oC = self.kernel_shape
-
-        downstream_grad = np.zeros((B, iH, iW, iC))
-        self.grads['dW'] = np.zeros(self.kernel_shape)
-        self.grads['db'] = upstream_grad.sum(axis=(0, 1, 2))
-
         input_feat = self.get_padded_feat(self.input_feat)
-        
-        # compute downstream gradient, shape = (B, iH, iW, iC)
-        for b in range(B):
-            h = 0
-            for i in range(oH):
-                w = 0
-                for j in range(oW):
-                    partial_weights = np.reshape(self.weights[:, :, :, :], (-1, kH, kW, iC)) # 1, 10, 10, 16
-                    partial_upstream_grad = np.reshape(upstream_grad[b, i:i + 1, j:j + 1, :], (-1, 1, 1, 1)) # 32, 1, 1, 1
-                    a = np.sum(partial_weights * partial_upstream_grad, axis=0) # 10, 10, 16
-                    downstream_grad[b, h:h + kH, w:w + kW, :] += a
-                    
-                    w += self.stride
-                h += self.stride
-        
-        # compute local gradient, shape = (kH, kW, iC, oC)
-        for oc in range(oC):
-            h = 0
-            for i in range(oH):
-                w = 0
-                for j in range(oW):
-                    partial_input_feat = np.reshape(self.input_feat[:, h:h + kH, w:w + kW, :], (-1, kH, kW, iC)) # 24, 10, 10, 16
-                    partial_upstream_grad = np.reshape(upstream_grad[:, i:i + 1, j:j + 1, oc], (-1, 1, 1, 1)) # 24, 1, 1, 1
-                    a = np.sum(partial_input_feat * partial_upstream_grad, axis=0)
-                    self.grads['dW'][:, :, :, oc] += a
+        downstream_grad = np.zeros_like(self.input_feat)
+        self.grads['dW'] = np.zeros_like(self.weights)
+        self.grads['db'] = upstream_grad.sum(axis=(0, 1, 2)) / B
 
-
-                    w += self.stride
-                h += self.stride
+        h = 0
+        for i in range(oH):
+            w = 0
+            for j in range(oW):
+                downstream_grad[:, h:h + kH, w:w + kW, :] += np.sum(
+                    self.weights[np.newaxis, :, :, :, :] *
+                    upstream_grad[:, i:i+1, j:j+1, np.newaxis, :],
+                    axis=4
+                )
+                self.grads['dW'] += np.sum(
+                    self.input_feat[:, h:h + kH, w:w + kW, :, np.newaxis] *
+                    upstream_grad[:, i:i+1, j:j+1, np.newaxis, :],
+                    axis=0
+                )
+                w += self.stride
+            h += self.stride
 
         self.grads['dW'] /= B
-        self.grads['db'] /= B
 
         return downstream_grad[:, self.padding:self.padding + iH, self.padding:self.padding + iW, :]
 
-        ########
-        # h = 0
-        # for i in range(oH):
-            # w = 0
-            # for j in range(oW):
-                # a = np.sum(
-                    # self.weights[np.newaxis, :, :, :, :] *
-                    # upstream_grad[:, i:i + 1, j:j + 1, np.newaxis, :],
-                    # axis=4
-                # )
-                # downstream_grad[:, h:h + kH, w:w + kW, :] += a
-                # self.grads['dW'] += np.sum(
-                    # input_feat[:, h:h + kH, w:w + kW, :, np.newaxis] *
-                    # upstream_grad[:, i:i + 1, j:j + 1, np.newaxis, :],
-                    # axis=0
-                # )
-                # w += self.stride
-            # h += self.stride
-
-        # self.grads['dW'] /= B
-
-        # return downstream_grad[:, self.padding:self.padding + iH, self.padding:self.padding + iW, :]
-
     def update(self, learning_rate):
-        # TODO: implement conv layer update
-        raise NotImplementedError
+        self.weights = self.weights - learning_rate * self.grads['dW']
+        self.bias = self.bias - learning_rate * self.grads['db']
 
     def get_padded_feat(self, input_feat):
         """get padded version feature map given the value of padding
@@ -233,7 +189,7 @@ class FullyConnected:
     """
     def __init__(self, input_shape, output_shape):
 
-        self.name = "FullyConnected"
+        self.name = 'FullyConnected'
         self.update_required = True
         
         self.input_shape = input_shape
@@ -255,7 +211,7 @@ class FullyConnected:
         B = self.input_feat.shape[0]
 
         self.grads['dW'] = np.dot(upstream_grad.T, self.input_feat) / B
-        self.grads['db'] = np.sum(upstream_grad) / B
+        self.grads['db'] = np.sum(upstream_grad, axis=0, keepdims=True) / B
         
         downstream_grad = np.dot(upstream_grad, self.weights)
 
@@ -269,16 +225,15 @@ class FullyConnected:
 class Flatten:
     """reshape the input to 1-dimension (as known as flatten)
     """
-    def __init__(self, input_shape=None):
+    def __init__(self):
 
-        self.name = "Flatten"
+        self.name = 'Flatten'
         self.update_required = False
         
-        self.input_shape = input_shape
+        self.input_shape = None
 
     def forward(self, input_feat):
         self.input_shape = input_feat.shape
-        assert self.input_shape == input_feat.shape
 
         B = input_feat.shape[0]
         output_feat = np.reshape(input_feat, (B, -1))

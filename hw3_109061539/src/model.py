@@ -28,7 +28,7 @@ class Model:
             Softmax()
         ]
 
-        self.lr = 3e-4
+        self.lr = 0.0005
 
     def forward(self, x):
         for layer in self.layers:
@@ -56,6 +56,22 @@ class Model:
                 print("[update] {}".format(layer.name))
                 layer.update(self.lr)
 
+    def predict(self, x):
+        logits = self.forward(x)
+        B = logits.shape[0]
+
+        prediction = np.zeros((B, 1), dtype=int)
+        for idx in range(B):
+            prediction[idx, 0] = np.argmax(logits[idx, :])
+
+        return prediction
+
+    def save(self, path_to_checkpoints_dir, tag):
+        raise NotImplementedError
+
+    def load(self, path_to_checkpoint):
+        raise NotImplementedError
+
 
 if __name__ == '__main__':
     dataset = Dataset('./data', mode='train')
@@ -68,3 +84,4 @@ if __name__ == '__main__':
     print(logits)
     init_grad = logits - [[1, 0, 0]]
     model.backward(d=init_grad)
+    model.update()
