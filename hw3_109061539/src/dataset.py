@@ -18,7 +18,6 @@ class Dataset:
         
         if self.mode == 'train':
             self.path_to_data = os.path.join(path_to_data, 'Data_train')
-
             for text, label in self.text2label.items():
                 for filename in os.listdir(os.path.join(self.path_to_data, text))[:343]:
                     img = cv2.imread(os.path.join(self.path_to_data, text, filename), 0)
@@ -26,7 +25,6 @@ class Dataset:
                     self.labels.append(label)
         elif self.mode == 'val':
             self.path_to_data = os.path.join(path_to_data, 'Data_train')
-
             for text, label in self.text2label.items():
                 for filename in os.listdir(os.path.join(self.path_to_data, text))[343:]:
                     img = cv2.imread(os.path.join(self.path_to_data, text, filename), 0)
@@ -34,10 +32,10 @@ class Dataset:
                     self.labels.append(label)
         else:
             self.path_to_data = os.path.join(path_to_data, 'Data_test')
-
             for text, label in self.text2label.items():
                 for filename in os.listdir(os.path.join(self.path_to_data, text)):
-                    img = cv2.imread(os.path.join(self.path_to_data, text, filename), 0)
+                    img = cv2.imread(os.path.join(
+                        self.path_to_data, text, filename), 0)
                     self.images.append(img)
                     self.labels.append(label)
 
@@ -56,9 +54,7 @@ class Dataset:
             indexes = list(int_or_slice)
 
         num_of_fetch = len(indexes)
-        images = []
-        labels = []
-
+        images, labels = [], []
         for i, index in enumerate(indexes):
             image = self.images[index]
             image = np.array(image, dtype=float)
@@ -69,21 +65,10 @@ class Dataset:
             labels.append(label)
 
         images = np.array(images, dtype=float)
-        images = np.reshape(images, (num_of_fetch, self.IMG_HEIGHT, self.IMG_WIDTH, self.IMG_CHANNEL))
+        images = np.reshape(images, (
+            num_of_fetch, self.IMG_HEIGHT,
+            self.IMG_WIDTH, self.IMG_CHANNEL))
         labels = np.array(labels, dtype=int)
         labels = np.reshape(labels, (num_of_fetch, 1))
 
         return images, labels
-
-
-if __name__ == '__main__':
-    dataset = Dataset('./data', mode='train')
-    img, lbl = dataset[:]
-
-    print('Length of dataset:', len(dataset))
-    print('Image:')
-    print('  - shape:', img.shape)
-    print('  - type:', type(img))
-    print('Label:')
-    print('  - shape:', lbl.shape)
-    print('  - type:', type(lbl))

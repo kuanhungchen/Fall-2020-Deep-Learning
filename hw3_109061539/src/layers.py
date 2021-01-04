@@ -5,20 +5,22 @@ class Softmax:
     """softmax function layer
     """
     def __init__(self):
-
         self.name = 'Softmax'
         self.update_required = False
 
         self.probs = None
     
     def forward(self, input_feat):
-
+        """softmax function forward pass
+        """
         exps = np.exp(input_feat)
-        self.probs = exps / np.sum(exps, axis=1, keepdims=True)
+        output_feat = self.probs = exps / np.sum(exps, axis=1, keepdims=True)
 
-        return self.probs
+        return output_feat
     
     def backward(self, upstream_grad):
+        """softmax function backward pass
+        """
         return upstream_grad
 
 
@@ -26,28 +28,30 @@ class ReLU:
     """ReLU function layer
     """
     def __init__(self):
-
         self.name = 'ReLU'
         self.update_required = False
 
         self.activated_feat = None
 
     def forward(self, input_feat):
+        """ReLU function forward pass
+        """
         self.activated_feat = np.maximum(0, input_feat)
         return self.activated_feat
 
     def backward(self, upstream_grad):
+        """ReLU function backward pass
+        """
         downstream_grad = np.array(upstream_grad, copy=True)
         downstream_grad[self.activated_feat <= 0] = 0
         return downstream_grad
 
 
 class Conv2D:
-    """2D convolution layer
-    (ref: https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html)
-    """
     def __init__(self, kernel_shape, stride=1, padding=0):
-        """
+        """2D convolution layer
+        (ref: https://pytorch.org/docs/stable/generated/torch.nn.Conv2d.html)
+
         Args:
             kernel_shape:
                 The shape (kH, kW, iC, oC) of the kernel in this layer,
@@ -60,7 +64,6 @@ class Conv2D:
             padding:
                 The padding of convolution operation, default is 0.
         """
-
         self.name = 'Conv2D'
         self.update_required = True
 
@@ -68,12 +71,10 @@ class Conv2D:
         self.kernel_shape = kernel_shape
         self.stride = stride
         self.padding = padding
-
         self.input_feat = None
         self.weights = np.random.randn(*self.kernel_shape) * 0.1
         self.bias = np.random.randn(self.kernel_shape[3]) * 0.1
         self.grads = {'dW': None, 'db': None}
-
 
     def forward(self, input_feat):
         """2D convolution forward pass
@@ -89,9 +90,7 @@ class Conv2D:
                 The shape is (B, oH, oW, oC), where B, oH, oW, oC means
                 batch_size, output height, output width and output channel.
         """
-
         self.input_feat = input_feat
-
         B, iH, iW, _ = input_feat.shape
         kH, kW, _, oC = self.kernel_shape
 
@@ -123,11 +122,12 @@ class Conv2D:
                 batch_size, output height, output width and output channel.
 
         Return:
-
+            downstream_grad:
+                The downstream gradient.
+                The shape is (B, iH, iW, iC)
         """
-
         B, iH, iW, iC = self.input_feat.shape
-        _, oH, oW, oC = upstream_grad.shape
+        _, oH, oW, _ = upstream_grad.shape
         kH, kW, _, oC = self.kernel_shape
         input_feat = self.get_padded_feat(self.input_feat)
         downstream_grad = np.zeros_like(self.input_feat)
@@ -156,6 +156,8 @@ class Conv2D:
         return downstream_grad[:, self.padding:self.padding + iH, self.padding:self.padding + iW, :]
 
     def update(self, learning_rate):
+        """update weights and bias
+        """
         self.weights = self.weights - learning_rate * self.grads['dW']
         self.bias = self.bias - learning_rate * self.grads['db']
 
@@ -166,20 +168,18 @@ class Conv2D:
                 The input feature map.
 
             padding:
-                The value of padding.
+                The value of padding.j
 
         Return:
             padded_feat:
                 The output feature map which is padded.
         """
-
         if self.padding == 0:
             padded_feat = input_feat
         else:
             B, iH, iW, iC = input_feat.shape
             padded_feat = np.zeros((B, iH + self.padding * 2, iW + self.padding * 2, iC))
-            for b in range(B):
-                padded_feat[b, self.padding:-self.padding, self.padding:-self.padding, :] = input_feat[b:, :, :, :]
+            padded_feat[:, self.padding:self.padding + iH, self.padding:self.padding + iW, :] = input_feat
 
         return padded_feat
 
@@ -188,59 +188,65 @@ class FullyConnected:
     """fully connected layer
     """
     def __init__(self, input_shape, output_shape):
-
         self.name = 'FullyConnected'
         self.update_required = True
         
+        # variable initialization
+        self.input_feat = None
         self.input_shape = input_shape
         self.output_shape = output_shape
-
-        self.input_feat = None
         self.weights = np.random.randn(self.output_shape, self.input_shape) * 0.1
         self.bias = np.random.randn(1, self.output_shape) * 0.1
         self.grads = {'dW': None, 'db': None}
 
     def forward(self, input_feat):
+        """fully connected forward pass
+        """
         self.input_feat = input_feat
-
         output_feat = np.dot(input_feat, self.weights.T) + self.bias
         
         return output_feat
 
     def backward(self, upstream_grad):
+        """fully connected backward pass
+        """
         B = self.input_feat.shape[0]
 
         self.grads['dW'] = np.dot(upstream_grad.T, self.input_feat) / B
         self.grads['db'] = np.sum(upstream_grad, axis=0, keepdims=True) / B
-        
         downstream_grad = np.dot(upstream_grad, self.weights)
 
         return downstream_grad
     
     def update(self, learning_rate):
+        """update weights and bias
+        """
         self.weights = self.weights - learning_rate * self.grads['dW']
         self.bias = self.bias - learning_rate * self.grads['db']
 
 
 class Flatten:
-    """reshape the input to 1-dimension (as known as flatten)
+    """Flatten layer which reshapes the input to 1-dimension
     """
     def __init__(self):
-
         self.name = 'Flatten'
         self.update_required = False
         
         self.input_shape = None
 
     def forward(self, input_feat):
+        """flatten layer forward pass
+        """
         self.input_shape = input_feat.shape
-
         B = input_feat.shape[0]
+
         output_feat = np.reshape(input_feat, (B, -1))
 
         return output_feat
     
     def backward(self, upstream_grad):
+        """flatten layer backward pass
+        """
         downstream_grad = np.reshape(upstream_grad, self.input_shape)
 
         return downstream_grad
@@ -248,8 +254,24 @@ class Flatten:
 
 class MaxPool2D:
     def __init__(self, kernel_shape, stride):
+        """2D max pooling operation
+        (ref: https://pytorch.org/docs/stable/generated/torch.nn.MaxPool2d.html)
 
-        self.name = "MaxPool2D"
+        Args:
+            kernel_shape:
+                The kernel shape of max-pooling.
+                Currently only supports for single integer.
+
+            stride:
+                The stride of max-pooling.
+                Current only supports for single integer.
+
+        Return:
+            output_feat:
+                The output feature map.
+        """
+
+        self.name = 'MaxPool2D'
         self.update_required = False
 
         self.kernel_shape = kernel_shape
