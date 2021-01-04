@@ -126,11 +126,11 @@ class Conv2D:
                 The downstream gradient.
                 The shape is (B, iH, iW, iC)
         """
-        B, iH, iW, iC = self.input_feat.shape
+        B, iH, iW, _ = self.input_feat.shape
         _, oH, oW, _ = upstream_grad.shape
-        kH, kW, _, oC = self.kernel_shape
+        kH, kW, _, _ = self.kernel_shape
         input_feat = self.get_padded_feat(self.input_feat)
-        downstream_grad = np.zeros_like(self.input_feat)
+        downstream_grad = np.zeros_like(input_feat)
         self.grads['dW'] = np.zeros_like(self.weights)
         self.grads['db'] = upstream_grad.sum(axis=(0, 1, 2)) / B
 
@@ -144,7 +144,7 @@ class Conv2D:
                     axis=4
                 )
                 self.grads['dW'] += np.sum(
-                    self.input_feat[:, h:h + kH, w:w + kW, :, np.newaxis] *
+                    input_feat[:, h:h + kH, w:w + kW, :, np.newaxis] *
                     upstream_grad[:, i:i+1, j:j+1, np.newaxis, :],
                     axis=0
                 )
@@ -250,56 +250,3 @@ class Flatten:
         downstream_grad = np.reshape(upstream_grad, self.input_shape)
 
         return downstream_grad
-
-
-class MaxPool2D:
-    def __init__(self, kernel_shape, stride):
-        """2D max pooling operation
-        (ref: https://pytorch.org/docs/stable/generated/torch.nn.MaxPool2d.html)
-
-        Args:
-            kernel_shape:
-                The kernel shape of max-pooling.
-                Currently only supports for single integer.
-
-            stride:
-                The stride of max-pooling.
-                Current only supports for single integer.
-
-        Return:
-            output_feat:
-                The output feature map.
-        """
-
-        self.name = 'MaxPool2D'
-        self.update_required = False
-
-        self.kernel_shape = kernel_shape
-        self.stride = stride
-
-    def forward(self, input_feat):
-        # TODO
-        raise NotImplementedError
-        B, iH, iW, iC = input_feat.shape
-        kH, kW = self.kernel_shape
-
-        oH = int((iH - kH) // self.stride) + 1
-        oW = int((iW - kW) // self.stride) + 1
-
-        output_feat = np.zeros((B, oH, oW, iC))
-
-        for b in range(B):
-            h = 0
-            for i in range(iH):
-                w = 0
-                for j in range(iW):
-                    for ic in range(iC):
-                        output_feat[b, i, j, ic] = np.maximum(input_feat[b, h:h + kH, w:w + kW, ic])
-                    w += self.stride
-                h += self.stride
-
-        return output_feat
- 
-    def backward(self, upstream_grad):
-        # TODO
-        raise NotImplementedError
