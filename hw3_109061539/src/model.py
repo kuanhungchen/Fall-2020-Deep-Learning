@@ -70,20 +70,28 @@ class Model:
             tag: folder name to save the current model weights
         """
         os.makedirs(os.path.join(path_to_checkpoints, str(tag)), exist_ok=True)
-        for i, layer in enumerate(self.layers):
-            if layer.update_required is True:
-                weights_filename = os.path.join(
-                    path_to_checkpoints, str(tag),
-                    layer.name + '_' + str(i + 1) + '_weights'
-                )
-                np.save(weights_filename, layer.weights)
-                print('[Model] saveing file {}'.format(weights_filename))
-                bias_filename = os.path.join(
-                    path_to_checkpoints, str(tag),
-                    layer.name + '_' + str(i + 1) + '_bias'
-                )
-                np.save(bias_filename, layer.bias)
-                print('[Model] saving file {}'.format(bias_filename))
+        with open(os.path.join(path_to_checkpoints, str(tag), 'model_arch.txt'), 'w') as fp:
+            for i, layer in enumerate(self.layers):
+                if layer.update_required is True:
+                    weights_filename = os.path.join(
+                        path_to_checkpoints, str(tag),
+                        layer.name + '_' + str(i + 1) + '_weights'
+                    )
+                    np.save(weights_filename, layer.weights)
+                    print('[Model] saveing file {}'.format(weights_filename))
+
+                    bias_filename = os.path.join(
+                        path_to_checkpoints, str(tag),
+                        layer.name + '_' + str(i + 1) + '_bias'
+                    )
+                    np.save(bias_filename, layer.bias)
+                    print('[Model] saving file {}'.format(bias_filename))
+
+                    fp.write('[ID] {:2d} | [Name] {:15} | [Weights] {:15} | [Bias] {:15}\n'.format(
+                        i + 1, layer.name, str(layer.weights.shape), str(layer.bias.shape)))
+                else:
+                    fp.write('[ID] {:2d} | [Name] {:15}\n'.format(i + 1, layer.name))
+        fp.close()
 
     def load(self, path_to_checkpoint):
         for filename in sorted(os.listdir(path_to_checkpoint)):
@@ -94,8 +102,3 @@ class Model:
                     self.layers[int(layer_id) - 1].weights = np.load(os.path.join(path_to_checkpoint, filename))
                 else:
                     self.layers[int(layer_id) - 1].bias = np.load(os.path.join(path_to_checkpoint, filename))
-        
-
-if __name__ == '__main__':
-    model = Model()
-    model.save('./checkpoints/', 'test')

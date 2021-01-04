@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 
 from src.dataset import Dataset
 from src.model import Model 
-from utils import one_hot_encoding, CEloss
+from utils import lr_schedule, CEloss, one_hot_encoding
 
 
 def train(path_to_data, path_to_checkpoints, epoch_num, batch_size, learning_rate):
@@ -21,6 +21,7 @@ def train(path_to_data, path_to_checkpoints, epoch_num, batch_size, learning_rat
     
     epoch_num = epoch_num
     batch_size = batch_size
+    best_acc = 0.0
     print('[Train] start training')
     for epoch_idx in range(1, epoch_num + 1):
         shuffle = np.random.permutation(len(train_dataset))
@@ -34,9 +35,13 @@ def train(path_to_data, path_to_checkpoints, epoch_num, batch_size, learning_rat
             one_hot_encoded_labels = one_hot_encoding(labels)
             grad = logits - one_hot_encoded_labels
             model.backward(grad)
-            
+
             # update model weight
             model.update()
+
+            # learning rate schedule
+            model.lr = lr_schedule(epoch_idx, model.lr)
+
 
         # compute training loss and accuracy
         training_hit, training_miss = 0, 0
@@ -64,10 +69,12 @@ def train(path_to_data, path_to_checkpoints, epoch_num, batch_size, learning_rat
                 validation_hit / (validation_hit + validation_miss),
                 sum(validation_loss) / len(validation_loss)))
         
+        if validation_hit / (validation_hit + validation_miss) > best_acc:
+            best_acc = validation_hit / (validation_hit + validation_miss)
+            model.save(path_to_checkpoints=path_to_checkpoints, tag='best_' + str(epoch_idx))
+
     # save mode weights
-    model.save(path_to_checkpoints=path_to_checkpoints, tag=str(datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")))
-
-
+    model.save(path_to_checkpoints=path_to_checkpoints, tag='last')
     print('[Train] finish training')
 
 

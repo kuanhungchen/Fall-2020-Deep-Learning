@@ -1,6 +1,11 @@
 import numpy as np
 
 
+def lr_schedule(cur_epoch, cur_lr):
+    new_lr = cur_lr * 1 / (1 + 0.001 * cur_epoch)
+
+    return new_lr
+
 def CEloss(probs, labels):
     """cross entropy loss function
     Args:
