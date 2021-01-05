@@ -46,6 +46,6 @@ def print_confusion_matrix(confusion_matrix_data):
     for predicted_list in confusion_matrix_data.values():
         for i, predicted in enumerate(predicted_list):
             predicteds[i] += predicted
-    message += '   All        {:3d} {:3d} {:3d} {:3d}\n'.format(*predicteds, sum(predicteds))
+    message += '   All        {:3d} {:3d} {:3d} {:3d}'.format(*predicteds, sum(predicteds))
 
     return message

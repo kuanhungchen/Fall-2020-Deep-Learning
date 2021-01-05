@@ -1,7 +1,5 @@
-import numpy as np
 import argparse
-import datetime
-from matplotlib import pyplot as plt
+import numpy as np
 
 from src.dataset import Dataset
 from src.model import Model 
@@ -39,9 +37,8 @@ def train(path_to_data, path_to_checkpoints, epoch_num, batch_size, learning_rat
             # update model weight
             model.update()
 
-            # learning rate schedule
-            model.lr = lr_schedule(epoch_idx, model.lr)
-
+        # learning rate schedule
+        # model.lr = lr_schedule(epoch_idx, model.lr)
 
         # compute training loss and accuracy
         training_hit, training_miss = 0, 0
@@ -81,7 +78,7 @@ def train(path_to_data, path_to_checkpoints, epoch_num, batch_size, learning_rat
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-data', '--data_dir', default='./data', help='path to data directory')
-    parser.add_argument('-c', '--checkpoints_dir', default='./checkpoints/', help='path to checkpoints directory')
+    parser.add_argument('-c', '--checkpoints_dir', default='./checkpoints', help='path to checkpoints directory')
     parser.add_argument('-e', '--epoch_num', default=30, type=int, help='number of training epoch')
     parser.add_argument('-b', '--batch_size', default=8, type=int, help='training batch size')
     parser.add_argument('-lr', '--learning_rate', default=3e-4, type=float, help='learning rate of optimizer')

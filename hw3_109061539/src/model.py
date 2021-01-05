@@ -13,17 +13,18 @@ class Model:
     def __init__(self, lr=3e-4):
         # definition of each layer of the model
         self.layers = [
-            Conv2D(kernel_shape=(7, 7, self.INPUT_CHANNEL, 4)),
+            Conv2D(kernel_shape=(5, 5, self.INPUT_CHANNEL, 8)),
             ReLU(),
-            Conv2D(kernel_shape=(7, 7, 4, 8)),
+            Conv2D(kernel_shape=(5, 5, 8, 8)),
             ReLU(),
             Flatten(),
-            FullyConnected(input_shape=3200, output_shape=400),
+            FullyConnected(input_shape=4608, output_shape=1024),
             ReLU(),
-            FullyConnected(input_shape=400, output_shape=50),
+            FullyConnected(input_shape=1024, output_shape=256),
             ReLU(),
-            FullyConnected(input_shape=50, output_shape=self.NUM_CLASS),
+            FullyConnected(input_shape=256, output_shape=64),
             ReLU(),
+            FullyConnected(input_shape=64, output_shape=self.NUM_CLASS),
             Softmax()
         ]
 
@@ -78,14 +79,14 @@ class Model:
                         layer.name + '_' + str(i + 1) + '_weights'
                     )
                     np.save(weights_filename, layer.weights)
-                    print('[Model] saveing file {}'.format(weights_filename))
+                    # print('[Model] saveing file {}'.format(weights_filename))
 
                     bias_filename = os.path.join(
                         path_to_checkpoints, str(tag),
                         layer.name + '_' + str(i + 1) + '_bias'
                     )
                     np.save(bias_filename, layer.bias)
-                    print('[Model] saving file {}'.format(bias_filename))
+                    # print('[Model] saving file {}'.format(bias_filename))
 
                     fp.write('[ID] {:2d} | [Name] {:15} | [Weights] {:15} | [Bias] {:15}\n'.format(
                         i + 1, layer.name, str(layer.weights.shape), str(layer.bias.shape)))
@@ -95,9 +96,10 @@ class Model:
 
     def load(self, path_to_checkpoint):
         for filename in sorted(os.listdir(path_to_checkpoint)):
+            if os.path.splitext(filename)[1] != '.npy': continue
             name, layer_id, weights_or_bias = os.path.splitext(filename)[0].split('_')
             if name == self.layers[int(layer_id) - 1].name and self.layers[int(layer_id) - 1].update_required is True:
-                print('[Model] loading file {}'.format(filename))
+                # print('[Model] loading file {}'.format(filename))
                 if weights_or_bias == 'weights':
                     self.layers[int(layer_id) - 1].weights = np.load(os.path.join(path_to_checkpoint, filename))
                 else:
