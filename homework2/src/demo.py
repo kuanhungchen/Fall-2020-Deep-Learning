@@ -18,7 +18,7 @@ LABEL2TEXT = {
 }
 
 def display_image_with_gen_data(data, gen_data, label=None):
-    """Display single image and generated samples given their ndarray by using 
+    """Display single image and generated samples given their ndarray by using
     matplotlib package.
 
     Args:
@@ -29,11 +29,11 @@ def display_image_with_gen_data(data, gen_data, label=None):
     """
 
     N = len(gen_data)  # number of generated data
-    
+
     # check shape of input data, raise error if it's not valid
     if len(data.shape) != 3 or data.shape[0] != 3:
         raise ValueError('shape of input data should be (3, 26, 26)')
-    
+
     # check label of input data, raise error if it's not valid
     if label is None:
         title = 'No label provided'
@@ -56,12 +56,12 @@ def display_image_with_gen_data(data, gen_data, label=None):
     plt.subplot(1 + N, 3, 3)
     plt.title('normal')
     plt.imshow(nrml)
-    
+
     for i in range(N):
         gen_bdry = gen_data[i][0, :, :]
         gen_dfct = gen_data[i][1, :, :]
         gen_nrml = gen_data[i][2, :, :]
-        
+
         plt.subplot(1 + N, 3, (i + 1) * 3 + 1)
         plt.imshow(gen_bdry)
         plt.subplot(1 + N, 3, (i + 1) * 3 + 2)
@@ -72,7 +72,7 @@ def display_image_with_gen_data(data, gen_data, label=None):
     plt.show()
 
 def demo(path_to_data, path_to_generated_data, index_to_demo=None):
-    """Display an image in the wafer dataset, and also the corresponding 
+    """Display an image in the wafer dataset, and also the corresponding
     generated samples.
 
     Args:
@@ -82,7 +82,7 @@ def demo(path_to_data, path_to_generated_data, index_to_demo=None):
     Return:
         None
     """
-    
+
     dataset = Dataset(path_to_data)
     gen_dataset = Dataset(path_to_generated_data, generated=True)
 
@@ -93,7 +93,7 @@ def demo(path_to_data, path_to_generated_data, index_to_demo=None):
         raise ValueError('index should between 0 and {}'.format(len(dataset)))
 
     print('index to demo: {}'.format(index_to_demo))
-    
+
     # read original data
     data, label = dataset[index_to_demo]
 

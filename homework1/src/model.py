@@ -52,9 +52,9 @@ def one_hot_encoding(labels):
 
 class Model:
     """Classification model for MNIST dataset
-    
+
     Structure:
-    
+
     #   |     Layer name    |   Input size  | Output size
     -------------------------------------------------------
     1   |   Fully connected |   28 * 28     |       h1
@@ -63,7 +63,7 @@ class Model:
     4   |       ReLU        |       h2      |       h2
     5   |   Fully connected |       h2      |       10
     6   |       Softmax     |       10      |       10
-    
+
     Default setting:
     1) h1 = 128, h2 = 64
     2) Learning rate = 0.005
@@ -98,7 +98,7 @@ class Model:
         self.lr = 0.0005
         # initial beta parameter for momentum
         self.beta = 0.9
-    
+
     def forward(self, x):
         """Forward-pass function
         Args:
@@ -108,7 +108,7 @@ class Model:
         """
         N = x.shape[0]
         self.cache["X"] = x
-        
+
         cur_x = x[0]
         Z1 = np.dot(cur_x, self.weights["W1"]) + self.weights["b1"]
         A1 = ReLU(Z1)
@@ -132,14 +132,14 @@ class Model:
             A2 = ReLU(Z2)
             Z3 = np.dot(A2, self.weights["W3"]) + self.weights["b3"]
             A3 = Softmax(Z3)
-            
+
             self.cache["Z1"] = np.concatenate((self.cache["Z1"], Z1), axis=0)
             self.cache["A1"] = np.concatenate((self.cache["A1"], A1), axis=0)
             self.cache["Z2"] = np.concatenate((self.cache["Z2"], Z2), axis=0)
             self.cache["A2"] = np.concatenate((self.cache["A2"], A2), axis=0)
             self.cache["Z3"] = np.concatenate((self.cache["Z3"], Z3), axis=0)
             self.cache["A3"] = np.concatenate((self.cache["A3"], A3), axis=0)
-        
+
         logits = self.cache["A3"]
         return logits
 
@@ -152,16 +152,16 @@ class Model:
             None
         """
         N = labels.shape[0]
-        
+
         # encode labels to one-hot format
         labels = one_hot_encoding(labels)
-        
+
         dW1 = db1 = dW2 = db2 = dW3 = db3 = 0.0
         for i in range(N):
             # iterate data in a batch
             cur_logits = logits[i]
             cur_labels = labels[i]
-            
+
             cur_dZ3 = cur_logits - cur_labels
             cur_dW3 = (1. / N) * np.dot(self.cache["A2"][i].reshape(-1, 1), cur_dZ3.reshape(1, -1))
             cur_db3 = (1. / N) * cur_dZ3.reshape(1, -1)
@@ -170,12 +170,12 @@ class Model:
             cur_dZ2 = ReLU_back(cur_dA2, self.cache["Z2"][i])
             cur_dW2 = np.dot(self.cache["A1"][i].reshape(-1, 1), cur_dZ2.reshape(1, -1))
             cur_db2 = cur_dZ2.reshape(1, -1)
-            
+
             cur_dA1 = np.dot(self.weights["W2"], cur_dZ2)
             cur_dZ1 = ReLU_back(cur_dA1, self.cache["Z1"][i])
             cur_dW1 = (1. / N) * np.dot(self.cache["X"][i].reshape(-1, 1), cur_dZ1.reshape(1, -1))
             cur_db1 = (1. / N) * cur_dZ1.reshape(1, -1)
-            
+
             # accumulate gradients over whole batch
             dW1 += cur_dW1
             db1 += cur_db1
@@ -183,7 +183,7 @@ class Model:
             db2 += cur_db2
             dW3 += cur_dW3
             db3 += cur_db3
-        
+
         # use momentum optimizer
         self.grads["dW1"] = (1. - self.beta) * dW1 + self.beta * self.grads["dW1"]
         self.grads["db1"] = (1. - self.beta) * db1 + self.beta * self.grads["db1"]
@@ -206,7 +206,7 @@ class Model:
         self.weights["b2"] -= self.lr * self.grads["db2"]
         self.weights["W3"] -= self.lr * self.grads["dW3"]
         self.weights["b3"] -= self.lr * self.grads["db3"]
-    
+
     def lr_decay(self):
         """decay model learning rate
         Args:
@@ -215,7 +215,7 @@ class Model:
             None
         """
         self.lr /= 2
-        
+
     def predict(self, x):
         """predict a category given input data
         Args:
@@ -224,14 +224,14 @@ class Model:
             preds.shape = (batch, 1)
         """
         N = x.shape[0]
-        
+
         preds = np.zeros((N, 1))
         logits = self.forward(x)
         for i in range(N):
             preds[i] = np.argmax(logits[i])
-        
+
         return preds
-    
+
     def CEloss(self, logits, labels):
         """compute cross entropy (CE) loss
         Args:
@@ -241,12 +241,12 @@ class Model:
             loss.shape = (1)
         """
         N = labels.shape[0]
-        
+
         # encode labels to one-hot format
         labels = one_hot_encoding(labels)
         log_sum = np.sum(np.multiply(labels, np.log(logits)))
         CE_loss = - (1. / N) * log_sum
-        
+
         return CE_loss
 
     def save(self, path_to_checkpoints, tag):

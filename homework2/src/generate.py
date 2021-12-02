@@ -25,8 +25,9 @@ def generate(path_to_data, path_to_generated_data, path_to_checkpoint):
     model = AE()
     # load target model weights
     model.load(path_to_checkpoint)
-    mode = model.float()
-    
+    model = model.float()
+    model = model.cuda()
+
     # create array for generated samples
     generated_data = np.zeros((1, 26, 26, 3))
     generated_label = np.zeros((1, 1))
@@ -36,10 +37,10 @@ def generate(path_to_data, path_to_generated_data, path_to_checkpoint):
     for batch_idx, (data, label) in enumerate(dataloader):
         data = data.float()
         data = data.cuda()
-        
+
         # encode the data to latent
         latent = model.eval().encode(data)
-        
+
         for _ in range(5):
             # add Gaussian noise to the latent
             noise = torch.randn_like(latent)
@@ -56,19 +57,19 @@ def generate(path_to_data, path_to_generated_data, path_to_checkpoint):
                     max_channel = np.argmax(reconstructed_data[0, i, j, :])
                     for c in range(3):
                         reconstructed_data[0, i, j, c] = 1 if c == max_channel else 0
-            
+
             # append to array
             generated_data = np.concatenate((generated_data, reconstructed_data), axis=0)
             generated_label = np.concatenate((generated_label, label), axis=0)
-        
+
     generated_data = generated_data[1:]
     generated_label = generated_label[1:]
-    
+
     if save_flag:
         # save as .npy file
         np.save(os.path.join(path_to_generated_data, 'gen_data'), generated_data)
         np.save(os.path.join(path_to_generated_data, 'gen_label'), generated_label)
- 
+
 
 if __name__ == '__main__':
     generate(path_to_data='./wafer', path_to_generated_data='./output', path_to_checkpoint='./checkpoints/model_last.pth')

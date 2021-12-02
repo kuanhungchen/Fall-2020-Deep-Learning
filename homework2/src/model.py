@@ -65,12 +65,12 @@ class AutoEncoder(nn.Module):
         Return:
             loss.shape = ()
         """
-        
+
         loss_function = nn.MSELoss()
         loss = loss_function(data, reconstructed_data)
 
         return loss
-    
+
     def save(self, path_to_checkpoints_dir, tag):
         """
         Args:

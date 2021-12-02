@@ -16,20 +16,20 @@ LABEL2TEXT = {
 }
 
 def display_image(data, label=None):
-    """Display single image (with three channels separated) given its ndarray 
+    """Display single image (with three channels separated) given its ndarray
     by using matplotlib package.
-    
+
     Args:
         data: target ndarray of the image which should contain three channels
         label (int): label of the input data
     Return:
         None
     """
-    
+
     # check shape of input data, raise error if it's not valid
     if len(data.shape) != 3 or data.shape[0] != 3:
         raise ValueError('shape of input data should be (3, 26, 26)')
-    
+
     # check label of input data, raise error if it's not valid
     if label is None:
         title = 'No label provided'
@@ -39,7 +39,7 @@ def display_image(data, label=None):
         raise ValueError('label of input data should between 0 and 8')
 
     bdry, dfct, nrml = data[0, :, :], data[1, :, :], data[2, :, :]
-    
+
     # draw the three components in a PIL window
     plt.figure()
     plt.suptitle(title, fontsize=14)

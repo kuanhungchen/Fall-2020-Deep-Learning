@@ -6,7 +6,7 @@ def draw(path_to_log_file):
     with open(path_to_log_file, 'r') as fp:
         for _ in range(2):
             _ = fp.readline()
-        
+
         x, y = [], []
         for i in range(50000):
             line = fp.readline()
@@ -14,7 +14,7 @@ def draw(path_to_log_file):
             x.append(i)
             y.append(float(loss))
     fp.close()
-    
+
     print('Show figure, len(x) = {}'.format(len(x)))
     print('First loss: {}, last loss: {}'.format(y[0], y[-1]))
 
@@ -28,7 +28,7 @@ def draw(path_to_log_file):
     plt.title('Training loss vs Epoch')
     plt.plot(x, y)
     plt.show()
-        
+
 
 
 if __name__ == '__main__':
